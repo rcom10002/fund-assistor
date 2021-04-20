@@ -9,3 +9,5 @@ A JavaScript project
 <https://react-bootstrap.github.io/getting-started/introduction/>
 
 <https://docs.gitignore.io/>
+
+<https://www.htmlcolorname.com/>
