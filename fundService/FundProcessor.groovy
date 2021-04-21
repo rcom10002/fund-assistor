@@ -63,8 +63,9 @@ class FundProcessor {
     //           \__.'                                                                                       
     // 单位周期内最大累计净值与最小累计净值
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-    def process(fundList, periodicalUnit) {
+    def process(fundList, fundStatisticalPeriod) {
         String jsonString = ""
+        int fundDataRange = fundList.size
         if (fundList) {
             fundList.eachWithIndex { e, i ->
                 if (!e["JZZZL"].length()) {
@@ -74,13 +75,31 @@ class FundProcessor {
             fundList.eachWithIndex { e, i ->
                 if (i > 400) {
                 }
-                e["PERIODICAL_MAX_LJJZ"] = formulaMax(fundList, "LJJZ", i, periodicalUnit)
-                e["PERIODICAL_MIN_LJJZ"] = formulaMin(fundList, "LJJZ", i, periodicalUnit)
+                e["PERIODICAL_MAX_LJJZ"] = formulaMax(fundList, "LJJZ", i, fundStatisticalPeriod)
+                e["PERIODICAL_MIN_LJJZ"] = formulaMin(fundList, "LJJZ", i, fundStatisticalPeriod)
                 e["PERIODICAL_1W_JZZZL"] = formulaSum(fundList, "JZZZL", i, 5)
                 e["PERIODICAL_2W_JZZZL"] = formulaSum(fundList, "JZZZL", i, 10)
                 e["PERIODICAL_3W_JZZZL"] = formulaSum(fundList, "JZZZL", i, 15)
             }
         }
         return fundList
+    }
+
+    def saveRecents(token, recent) {
+        def profile = loadProfile(token)
+        println([token, recent, profile.dump()])
+        profile['recents'][recent.fundCode] = ["fundStatisticalPeriod": recent.fundStatisticalPeriod, "fundDataRange": recent.fundDataRange]
+        def username = FundProfile.getUsername(token)
+        new File(".", "${username}.txt").write(new JsonBuilder(profile).toString())
+    }
+
+    def loadRecents(token) {
+        def username = FundProfile.getUsername(token)
+        loadProfile(username).recents
+    }
+
+    private loadProfile(token) {
+        def username = FundProfile.getUsername(token)
+        new JsonSlurper().parseText(new File(".", "${username}.txt").getText())
     }
 }

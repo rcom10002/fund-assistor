@@ -4,7 +4,7 @@ import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Container, Row, Col } from 'react-bootstrap';
 import { Navbar, Nav, NavDropdown } from 'react-bootstrap';
-import { Form, FormControl, Button } from 'react-bootstrap';
+import { Form, FormControl, Dropdown, ButtonGroup, Button, SplitButton, DropdownButton, InputGroup } from 'react-bootstrap';
 
 import FundDataServiceBroker from './FundDataServiceBroker'
 import FundCharts from './FundCharts'
@@ -13,23 +13,34 @@ import CockpitPanelModalWindow from './CockpitPanelModalWindow'
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = { fundCode: "", fundData: "", fundDataSize: "" };
+    this.state = { fundCode: "", fundStatisticalPeriod: "", fundDataRange: "", fundData: "", token: "cbabca3e-ca05-4953-bc65-124db8c839dd-woody", recents: [] };
 
     this.showCockpitPanel = this.showCockpitPanel.bind(this);
-    this.retrieveFundDetail = this.retrieveFundDetail.bind(this);
+    this.setFundStatisticalPeriod = this.setFundStatisticalPeriod.bind(this);
+    this.setFundDataRange = this.setFundDataRange.bind(this);
     this.setFundCode = this.setFundCode.bind(this);
-    this.setFundDataSize = this.setFundDataSize.bind(this);
+    this.retrieveFundDetail = this.retrieveFundDetail.bind(this);
   }
 
   componentDidMount() {
     let fundCode = 161725;
-    let fundDataSize = 240;
+    let fundDataRange = 240;
+    let fundStatisticalPeriod = 22;
+
     FundDataServiceBroker.getFundDetail(
+      this.state.token,
       fundCode,
-      fundDataSize,
+      fundStatisticalPeriod,
+      fundDataRange,
       (fundData) => {
-        console.log(['test', fundData]);
-        this.setState({ fundCode, fundData, fundDataSize });
+        this.setState({ fundCode, fundDataRange, fundStatisticalPeriod, fundData });
+      }
+    );
+
+    FundDataServiceBroker.getRecents(
+      this.state.token,
+      (recents) => {
+        this.setState({ recents });
       }
     );
   }
@@ -39,24 +50,31 @@ class App extends Component {
   }
 
   retrieveFundDetail() {
-    console.log(['FundDataServiceBroker', FundDataServiceBroker])
+    console.log(["retrieving ...", this.state])
     FundDataServiceBroker.getFundDetail(
+      this.state.token,
       this.state.fundCode,
-      this.state.fundDataSize,
-      (v) => {
-        console.log(['test', v]);
-        this.setState({ fundData: v })
-      })
+      this.state.fundStatisticalPeriod,
+      this.state.fundDataRange,
+      (fundData) => {
+        this.setState({ fundData });
+      }
+    )
+  }
+
+  setFundDataRange(event) {
+    console.log(event.target.value)
+    this.setState({ fundDataRange: event.target.value });
+  }
+
+  setFundStatisticalPeriod(event) {
+    console.log(event.target.value)
+    this.setState({ fundStatisticalPeriod: event.target.value });
   }
 
   setFundCode(event) {
     console.log(event.target.value)
     this.setState({ fundCode: event.target.value });
-  }
-
-  setFundDataSize(event) {
-    console.log(event.target.value)
-    this.setState({ fundDataSize: event.target.value });
   }
 
   render() {
@@ -71,18 +89,29 @@ class App extends Component {
                 <Nav className="mr-auto">
                   <Nav.Link href="#home" onSelect={this.showCockpitPanel}>Cockpit</Nav.Link>
                   <Nav.Link href="#link">Settings</Nav.Link>
-                  <NavDropdown title="Recent" id="basic-nav-dropdown">
-                    <NavDropdown.Item href="#action/3.1">Action</NavDropdown.Item>
-                    <NavDropdown.Item href="#action/3.2">Another action</NavDropdown.Item>
-                    <NavDropdown.Item href="#action/3.3">Something</NavDropdown.Item>
-                    <NavDropdown.Divider />
-                    <NavDropdown.Item href="#action/3.4">Separated link</NavDropdown.Item>
-                  </NavDropdown>
+                  <Recents recents={this.state.recents} />
                 </Nav>
                 <Form inline>
-                  <FormControl type="text" placeholder="Data Size" className="mr-sm-2" value={this.state.fundDataSize} onChange={this.setFundDataSize} />
-                  <FormControl type="text" placeholder="Search" className="mr-sm-2" value={this.state.fundCode} onChange={this.setFundCode} />
-                  <Button variant="outline-primary" onClick={this.retrieveFundDetail}>Search</Button>
+                  <InputGroup>
+                    <InputGroup.Prepend>
+                      <InputGroup.Text>Statistical Period</InputGroup.Text>
+                    </InputGroup.Prepend>
+                    <FormControl type="text" placeholder="Statistical Period" className="mr-sm-2" value={this.state.fundStatisticalPeriod} onChange={this.setFundStatisticalPeriod} />
+                  </InputGroup>
+                  <InputGroup>
+                    <InputGroup.Prepend>
+                      <InputGroup.Text>Data Range</InputGroup.Text>
+                    </InputGroup.Prepend>
+                    <FormControl type="text" placeholder="Data Range" className="mr-sm-2" value={this.state.fundDataRange} onChange={this.setFundDataRange} />
+                  </InputGroup>
+                  <InputGroup>
+                    <InputGroup.Prepend>
+                      <InputGroup.Text>Fund Code</InputGroup.Text>
+                    </InputGroup.Prepend>
+                    <FormControl type="text" placeholder="Fund Code" className="mr-sm-2" value={this.state.fundCode} onChange={this.setFundCode} />
+                  </InputGroup>
+
+                  <Button variant="primary" onClick={this.retrieveFundDetail}>Search</Button>
                 </Form>
               </Navbar.Collapse>
             </Navbar>
@@ -106,11 +135,22 @@ class App extends Component {
 }
 
 
+class Recents extends Component {
+  constructor(props) {
+    super(props);
+  }
+  render() {
+    console.log(['recents', this.props.recents])
+    const recentItemList = Object.keys(this.props.recents).map((fundCode) =>
+      <NavDropdown.Item href="" key={fundCode}>{fundCode}</NavDropdown.Item>
+    );
+    return (
+      <NavDropdown title="Recent" id="basic-nav-dropdown">{recentItemList}</NavDropdown>
+    )
+  }
+}
 export default App;
-
-
 
 // https://react-bootstrap.github.io/
 // https://recharts.org/en-US
 // https://reactjs.org/docs/hello-world.html
-

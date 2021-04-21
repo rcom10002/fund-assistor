@@ -24,9 +24,6 @@ class FundCrawler {
         def requestRC = request.getResponseCode();
         if (requestRC.equals(200)) {
             def result = new groovy.json.JsonSlurper().parseText(request.getInputStream().getText())
-
-            new File(".",'haiku.txt') << new JsonBuilder(result).toString()
-
             return result.Data.LSJZList
         }
         return null
