@@ -7,6 +7,8 @@ class WebApplication {
     private FundProcessor fundProcessor;
     @Autowired
     private FundCrawler fundCrawler;
+    @Autowired
+    private FundProfile fundProfile;
 
     @RequestMapping("/")
     String home() {
@@ -15,7 +17,7 @@ class WebApplication {
 
     @GetMapping("/funds/{fundCode}")
     @CrossOrigin
-    ResponseEntity fundProduct(
+    ResponseEntity showFundProduct(
             @RequestHeader Map<String, String> headers,
             @PathVariable("fundCode") String fundCode,
             @RequestParam(name="fundDataRange") int fundDataRange,
@@ -27,20 +29,20 @@ class WebApplication {
         recent['fundDataRange'] = fundDataRange
         def token = headers['token']
         if (token) {
-            fundProcessor.saveRecents(token, recent)
+            fundProfile.saveRecents(token, recent)
         } else {
             // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body()
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null)
         }
-        return ResponseEntity.ok(fundProcessor.process(fundCrawler.scratch(fundCode, fundDataRange), fundStatisticalPeriod))
+        return ResponseEntity.ok(fundProcessor.process(fundCrawler.scratchFundDetail(fundCode, fundDataRange), fundStatisticalPeriod))
     }
 
     @GetMapping("/recents")
     @CrossOrigin
-    ResponseEntity recents(@RequestHeader Map<String, String> headers) {
+    ResponseEntity listRecents(@RequestHeader Map<String, String> headers) {
         def token = headers['token']
         if (token) {
-            return ResponseEntity.ok(fundProcessor.loadRecents(token))
+            return ResponseEntity.ok(fundProfile.loadRecents(token))
         } else {
             // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body()
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null)
@@ -48,13 +50,26 @@ class WebApplication {
         
     }
 
-    @PostMapping("/login")
+    @PostMapping("/authentication")
     @CrossOrigin
-    ResponseEntity fundProduct(@RequestHeader Map<String, String> headers, @RequestBody Map<String,String> body) {
+    ResponseEntity authenticate(@RequestHeader Map<String, String> headers, @RequestBody Map<String,String> body) {
         String username = credential.username
         String password = credential.password
 
         return ResponseEntity.ok(["result": true])
+    }
+
+    @GetMapping("/fundNameList")
+    @CrossOrigin
+    ResponseEntity refreshFundNameList(@RequestHeader Map<String, String> headers, @RequestParam(name="pageSize", required = false) int pageSize) {
+        // def token = headers['token']
+        // if (token) {
+        //     return ResponseEntity.ok(fundProcessor.loadRecents(token))
+        // } else {
+        //     // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body()
+        //     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null)
+        // }
+        return ResponseEntity.ok(fundCrawler.scratchFundNameList(pageSize))
     }
 
 }

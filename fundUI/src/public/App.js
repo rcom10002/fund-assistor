@@ -58,6 +58,14 @@ class App extends Component {
       this.state.fundDataRange,
       (fundData) => {
         this.setState({ fundData });
+        if (!this.state.recents[this.state.fundCode]) {
+          FundDataServiceBroker.getRecents(
+            this.state.token,
+            (recents) => {
+              this.setState({ recents });
+            }
+          );
+        }
       }
     )
   }
