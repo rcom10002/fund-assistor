@@ -1,5 +1,19 @@
-import groovy.json.*
-
+/**
+ * Profile Data Structure:
+ * {
+ *     "token": "cbabca3e-ca05-4953-bc65-124db8c839dd-woody",
+ *     "recents": {
+ *         "161725": {
+ *             "fundStatisticalPeriod": 22,
+ *             "fundDataRange": 240
+ *         },
+ *         "512690": {
+ *             "fundStatisticalPeriod": 11,
+ *             "fundDataRange": 120
+ *         }
+ *     }
+ * }
+ */
 @Service
 class FundProfile {
 
@@ -10,12 +24,19 @@ class FundProfile {
         token.replaceAll(/^.+[-]/, '')
     }
 
-    def saveRecents(token, recent) {
+    def saveRecent(token, recent) {
         def profile = loadProfile(token)
         println([token, recent, profile.dump()])
         profile['recents'][recent.fundCode] = ["fundStatisticalPeriod": recent.fundStatisticalPeriod, "fundDataRange": recent.fundDataRange]
         def username = FundProfile.getUsername(token)
-        new File(".", "${username}.txt").write(new JsonBuilder(profile).toString())
+        new File(".", "${username}.txt").write(new groovy.json.JsonBuilder(profile).toString())
+    }
+
+    def deleteRecent(token, fundCode) {
+        def username = FundProfile.getUsername(token)
+        def profile = loadProfile(username)
+        profile.recents.remove(fundCode)
+        saveProfile(token, profile)
     }
 
     def loadRecents(token) {
@@ -23,12 +44,17 @@ class FundProfile {
         def recents = loadProfile(username).recents
         def nameList = fundCache.getNameList()
         recents.each {
-            it.value['name'] = fundCache.getNameList[it.key]
+            it.value['name'] = nameList[it.key]
         }
     }
 
     private loadProfile(token) {
         def username = FundProfile.getUsername(token)
-        new JsonSlurper().parseText(new File(".", "${username}.txt").getText())
+        new groovy.json.JsonSlurper().parseText(new File(".", "${username}.txt").getText())
+    }
+
+    private saveProfile(token, profile) {
+        def username = FundProfile.getUsername(token)
+        new File(".", "${username}.txt").write(new groovy.json.JsonBuilder(profile).toString())
     }
 }

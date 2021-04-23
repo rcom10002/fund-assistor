@@ -2,7 +2,8 @@ const BASE_URI = "http://localhost:8080/"
 
 const SERVICE_URI_LIST = {
     FUND_DETIAL: BASE_URI + "/funds/{fundCode}?fundStatisticalPeriod={fundStatisticalPeriod}&fundDataRange={fundDataRange}",
-    RECENTS: BASE_URI + "/recents"
+    RECENTS: BASE_URI + "/recents",
+    DELETE_RECENT: BASE_URI + "/recents/{fundCode}"
 }
 
 class FundDataServiceBroker {
@@ -17,6 +18,13 @@ class FundDataServiceBroker {
     static getRecents(token, responseHandler) {
         let url = SERVICE_URI_LIST.RECENTS
         fetch(url, { headers: { token } })
+            .then(response => response.json())
+            .then(responseHandler)
+    }
+
+    static deleteRecent(token, fundCode, responseHandler) {
+        let url = FundDataServiceBroker.formatUrl(SERVICE_URI_LIST.FUND_DDELETE_RECENTETIAL, fundCode)
+        fetch(url, { headers: { token }, method: "DELETE" })
             .then(response => response.json())
             .then(responseHandler)
     }

@@ -1,4 +1,3 @@
-@Grab('org.codehaus.groovy:groovy:2.5.14')
 import groovy.json.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

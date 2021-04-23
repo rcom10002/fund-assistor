@@ -1,5 +1,6 @@
 @Grab('spring-boot-devtools')
 @Grab(group='org.codehaus.groovy', module='groovy', version='[2.5.14,)')
+@Grab(group='org.codehaus.groovy', module='groovy-json', version='[2.5.14,)')
 @RestController
 class WebApplication {
 
@@ -29,7 +30,7 @@ class WebApplication {
         recent['fundDataRange'] = fundDataRange
         def token = headers['token']
         if (token) {
-            fundProfile.saveRecents(token, recent)
+            fundProfile.saveRecent(token, recent)
         } else {
             // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body()
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null)
@@ -43,6 +44,21 @@ class WebApplication {
         def token = headers['token']
         if (token) {
             return ResponseEntity.ok(fundProfile.loadRecents(token))
+        } else {
+            // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body()
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null)
+        }
+        
+    }
+
+    @DeleteMapping("/recents/{fundCode}")
+    @CrossOrigin
+    ResponseEntity deleteRecent(
+            @RequestHeader Map<String, String> headers
+            @PathVariable("fundCode") String fundCode) {
+        def token = headers['token']
+        if (token) {
+            return ResponseEntity.ok(fundProfile.deleteRecent(token, fundCode))
         } else {
             // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body()
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null)

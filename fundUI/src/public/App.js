@@ -16,6 +16,7 @@ class App extends Component {
     this.state = { fundCode: "", fundStatisticalPeriod: "", fundDataRange: "", fundData: "", token: "cbabca3e-ca05-4953-bc65-124db8c839dd-woody", recents: [] };
 
     this.showCockpitPanel = this.showCockpitPanel.bind(this);
+    this.saveRecent = this.saveRecent.bind(this);
     this.setFundStatisticalPeriod = this.setFundStatisticalPeriod.bind(this);
     this.setFundDataRange = this.setFundDataRange.bind(this);
     this.setFundCode = this.setFundCode.bind(this);
@@ -58,16 +59,28 @@ class App extends Component {
       this.state.fundDataRange,
       (fundData) => {
         this.setState({ fundData });
-        if (!this.state.recents[this.state.fundCode]) {
-          FundDataServiceBroker.getRecents(
-            this.state.token,
-            (recents) => {
-              this.setState({ recents });
-            }
-          );
-        }
+        FundDataServiceBroker.getRecents(
+          this.state.token,
+          (recents) => {
+            this.setState({ recents });
+          }
+        );
       }
     )
+  }
+
+  saveRecent(fundCode, fundDataRange, fundStatisticalPeriod) {
+    this.setState({ fundCode, fundDataRange, fundStatisticalPeriod });
+  }
+
+  deleteRecent(fundCode) {
+    FundDataServiceBroker.deleteRecent(
+      this.state.token,
+      fundCode,
+      (recents) => {
+        this.setState({ recents });
+      }
+    );
   }
 
   setFundDataRange(event) {
@@ -97,26 +110,26 @@ class App extends Component {
                 <Nav className="mr-auto">
                   <Nav.Link href="#home" onSelect={this.showCockpitPanel}>Cockpit</Nav.Link>
                   <Nav.Link href="#link">Settings</Nav.Link>
-                  <Recents recents={this.state.recents} />
+                  <Recents recents={this.state.recents} onRencentItemClick={this.saveRecent} onRencentItemDeleteButtonClick={this.deleteRecent} />
                 </Nav>
                 <Form inline>
                   <InputGroup>
                     <InputGroup.Prepend>
                       <InputGroup.Text>Statistical Period</InputGroup.Text>
                     </InputGroup.Prepend>
-                    <FormControl type="text" placeholder="Statistical Period" className="mr-sm-2" value={this.state.fundStatisticalPeriod} onChange={this.setFundStatisticalPeriod} />
+                    <FormControl type="text" placeholder="Statistical Period" className="mr-sm-2" value={this.state.fundStatisticalPeriod} onChange={this.setFundStatisticalPeriod} style={{width: 66}} />
                   </InputGroup>
                   <InputGroup>
                     <InputGroup.Prepend>
                       <InputGroup.Text>Data Range</InputGroup.Text>
                     </InputGroup.Prepend>
-                    <FormControl type="text" placeholder="Data Range" className="mr-sm-2" value={this.state.fundDataRange} onChange={this.setFundDataRange} />
+                    <FormControl type="text" placeholder="Data Range" className="mr-sm-2" value={this.state.fundDataRange} onChange={this.setFundDataRange} style={{width: 66}} />
                   </InputGroup>
                   <InputGroup>
                     <InputGroup.Prepend>
                       <InputGroup.Text>Fund Code</InputGroup.Text>
                     </InputGroup.Prepend>
-                    <FormControl type="text" placeholder="Fund Code" className="mr-sm-2" value={this.state.fundCode} onChange={this.setFundCode} />
+                    <FormControl type="text" placeholder="Fund Code" className="mr-sm-2" value={this.state.fundCode} onChange={this.setFundCode} style={{width: 88}} />
                   </InputGroup>
 
                   <Button variant="primary" onClick={this.retrieveFundDetail}>Search</Button>
@@ -146,11 +159,28 @@ class App extends Component {
 class Recents extends Component {
   constructor(props) {
     super(props);
+    this.applySelectedRecent = this.applySelectedRecent.bind(this);
+    this.handleDeletion = this.handleDeletion.bind(this);
   }
+
+  applySelectedRecent(fundCode, specificRecent) {
+    console.log(['applySelectedRecent', fundCode, specificRecent])
+    this.props.onRencentItemClick(fundCode, specificRecent.fundDataRange, specificRecent.fundStatisticalPeriod)
+  }
+
+  handleDeletion(fundCode) {
+    console.log(['handleDeletion', fundCode])
+    this.props.onRencentItemDeleteButtonClick(fundCode)
+  }
+
   render() {
     console.log(['recents', this.props.recents])
     const recentItemList = Object.keys(this.props.recents).map((fundCode) =>
-      <NavDropdown.Item href="" key={fundCode}>{fundCode}</NavDropdown.Item>
+      <NavDropdown.Item onClick={(e) => this.applySelectedRecent(fundCode, this.props.recents[fundCode])} href="" key={fundCode}>
+        <Button variant="outline-danger" onClick={(e) => { e.preventDefault(); this.handleDeletion(fundCode); }}>&#10007;</Button>
+        {' '}
+        {fundCode} - {this.props.recents[fundCode].name}
+      </NavDropdown.Item>
     );
     return (
       <NavDropdown title="Recent" id="basic-nav-dropdown">{recentItemList}</NavDropdown>

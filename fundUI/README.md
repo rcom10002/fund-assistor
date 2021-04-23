@@ -11,3 +11,7 @@ A JavaScript project
 <https://docs.gitignore.io/>
 
 <https://www.htmlcolorname.com/>
+
+<https://www.toptal.com/designers/htmlarrows/symbols/>
+
+
