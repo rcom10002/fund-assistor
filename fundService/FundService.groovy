@@ -21,13 +21,16 @@ class WebApplication {
     ResponseEntity showFundProduct(
             @RequestHeader Map<String, String> headers,
             @PathVariable("fundCode") String fundCode,
-            @RequestParam(name="fundDataRange") int fundDataRange,
-            @RequestParam(name="fundStatisticalPeriod") int fundStatisticalPeriod) {
+            @RequestParam(name="fundDataLength") int fundDataLength,
+            @RequestParam(name="fundStatisticalPeriod") int fundStatisticalPeriod,
+            @RequestParam(name="todayMockPercentage", required = false) Double todayMockPercentage) {
 
         def recent = [:]
         recent['fundCode'] = fundCode
+        recent['fundDataLength'] = fundDataLength
         recent['fundStatisticalPeriod'] = fundStatisticalPeriod
-        recent['fundDataRange'] = fundDataRange
+        recent['todayMockPercentage'] = todayMockPercentage
+
         def token = headers['token']
         if (token) {
             fundProfile.saveRecent(token, recent)
@@ -35,7 +38,9 @@ class WebApplication {
             // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body()
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null)
         }
-        return ResponseEntity.ok(fundProcessor.process(fundCrawler.scratchFundDetail(fundCode, fundDataRange), fundStatisticalPeriod))
+        def fundDataList = fundCrawler.scratchFundDetail(fundCode, fundDataLength)
+        fundProcessor.mockTodayData(fundDataList, todayMockPercentage)
+        return ResponseEntity.ok(fundProcessor.process(fundDataList, fundStatisticalPeriod))
     }
 
     @GetMapping("/recents")
@@ -51,11 +56,11 @@ class WebApplication {
         
     }
 
-    @DeleteMapping("/recents/{fundCode}")
+    @DeleteMapping("/recents")
     @CrossOrigin
     ResponseEntity deleteRecent(
-            @RequestHeader Map<String, String> headers
-            @PathVariable("fundCode") String fundCode) {
+            @RequestHeader Map<String, String> headers,
+            @RequestParam("fundCode") String fundCode) {
         def token = headers['token']
         if (token) {
             return ResponseEntity.ok(fundProfile.deleteRecent(token, fundCode))
@@ -77,7 +82,9 @@ class WebApplication {
 
     @GetMapping("/fundNameList")
     @CrossOrigin
-    ResponseEntity refreshFundNameList(@RequestHeader Map<String, String> headers, @RequestParam(name="pageSize", required = false) int pageSize) {
+    ResponseEntity refreshFundNameList(
+            @RequestHeader Map<String, String> headers,
+            @RequestParam(name="pageSize", required = false) int pageSize) {
         // def token = headers['token']
         // if (token) {
         //     return ResponseEntity.ok(fundProcessor.loadRecents(token))

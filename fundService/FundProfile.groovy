@@ -5,11 +5,11 @@
  *     "recents": {
  *         "161725": {
  *             "fundStatisticalPeriod": 22,
- *             "fundDataRange": 240
+ *             "fundDataLength": 240
  *         },
  *         "512690": {
  *             "fundStatisticalPeriod": 11,
- *             "fundDataRange": 120
+ *             "fundDataLength": 120
  *         }
  *     }
  * }
@@ -27,7 +27,7 @@ class FundProfile {
     def saveRecent(token, recent) {
         def profile = loadProfile(token)
         println([token, recent, profile.dump()])
-        profile['recents'][recent.fundCode] = ["fundStatisticalPeriod": recent.fundStatisticalPeriod, "fundDataRange": recent.fundDataRange]
+        profile['recents'][recent.fundCode] = ["fundStatisticalPeriod": recent.fundStatisticalPeriod, "fundDataLength": recent.fundDataLength, "todayMockPercentage": recent.todayMockPercentage]
         def username = FundProfile.getUsername(token)
         new File(".", "${username}.txt").write(new groovy.json.JsonBuilder(profile).toString())
     }

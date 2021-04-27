@@ -1,46 +1,51 @@
+import 'regenerator-runtime/runtime'
 import React, { Component } from 'react';
 import './App.css';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Container, Row, Col } from 'react-bootstrap';
 import { Navbar, Nav, NavDropdown } from 'react-bootstrap';
-import { Form, FormControl, Dropdown, ButtonGroup, Button, SplitButton, DropdownButton, InputGroup } from 'react-bootstrap';
+import { Form, FormControl, Dropdown, ButtonGroup, Button, SplitButton, DropdownButton, Badge, InputGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 import FundDataServiceBroker from './FundDataServiceBroker'
 import FundCharts from './FundCharts'
+import FundRecents from './FundRecents'
 import CockpitPanelModalWindow from './CockpitPanelModalWindow'
+import ConfirmationDialog from './ConfirmationDialog'
 
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = { fundCode: "", fundStatisticalPeriod: "", fundDataRange: "", fundData: "", token: "cbabca3e-ca05-4953-bc65-124db8c839dd-woody", recents: [] };
+    this.state = {
+      fundCode: "", fundStatisticalPeriod: "", fundDataLength: "", todayMockPercentage: 0, fundName: "",
+      fundData: "", token: "cbabca3e-ca05-4953-bc65-124db8c839dd-woody", recents: [],
+      showRecentDeletionConfirmationDialog: false, recentDeletionConfirmationDialogContext: {}
+    };
 
     this.showCockpitPanel = this.showCockpitPanel.bind(this);
-    this.saveRecent = this.saveRecent.bind(this);
+    this.refreshRecents = this.refreshRecents.bind(this);
+    this.setSelectedRecent = this.setSelectedRecent.bind(this);
+    this.showRecentDeletionConfirmationDialog = this.showRecentDeletionConfirmationDialog.bind(this);
+    this.closeRecentDeletionConfirmationDialog = this.closeRecentDeletionConfirmationDialog.bind(this);
+    this.deleteRecent = this.deleteRecent.bind(this);
+    this.setTodayMockPercentage = this.setTodayMockPercentage.bind(this);
     this.setFundStatisticalPeriod = this.setFundStatisticalPeriod.bind(this);
-    this.setFundDataRange = this.setFundDataRange.bind(this);
+    this.setFundDataLength = this.setFundDataLength.bind(this);
     this.setFundCode = this.setFundCode.bind(this);
     this.retrieveFundDetail = this.retrieveFundDetail.bind(this);
   }
 
   componentDidMount() {
-    let fundCode = 161725;
-    let fundDataRange = 240;
-    let fundStatisticalPeriod = 22;
+    console.log(["componentDidMount ... ... ... ... ... ..."])
+    this.refreshRecents()
+  }
 
-    FundDataServiceBroker.getFundDetail(
-      this.state.token,
-      fundCode,
-      fundStatisticalPeriod,
-      fundDataRange,
-      (fundData) => {
-        this.setState({ fundCode, fundDataRange, fundStatisticalPeriod, fundData });
-      }
-    );
-
-    FundDataServiceBroker.getRecents(
+  async refreshRecents() {
+    await FundDataServiceBroker.getRecents(
       this.state.token,
       (recents) => {
+        Object.keys(recents).forEach((key) => { const e = recents[key]; e.todayMockPercentage = e.todayMockPercentage || 0; });
+        console.log("getRecents", recents);
         this.setState({ recents });
       }
     );
@@ -50,51 +55,66 @@ class App extends Component {
     this.setState({ isCockpitPanelShown: true })
   }
 
-  retrieveFundDetail() {
+  async retrieveFundDetail() {
     console.log(["retrieving ...", this.state])
-    FundDataServiceBroker.getFundDetail(
+    await FundDataServiceBroker.getFundDetail(
       this.state.token,
       this.state.fundCode,
       this.state.fundStatisticalPeriod,
-      this.state.fundDataRange,
+      this.state.fundDataLength,
+      this.state.todayMockPercentage,
       (fundData) => {
+        console.log(["retrieving ... set fundData", fundData])
         this.setState({ fundData });
-        FundDataServiceBroker.getRecents(
-          this.state.token,
-          (recents) => {
-            this.setState({ recents });
-          }
-        );
       }
-    )
-  }
-
-  saveRecent(fundCode, fundDataRange, fundStatisticalPeriod) {
-    this.setState({ fundCode, fundDataRange, fundStatisticalPeriod });
-  }
-
-  deleteRecent(fundCode) {
-    FundDataServiceBroker.deleteRecent(
+    );
+    await FundDataServiceBroker.getRecents(
       this.state.token,
-      fundCode,
       (recents) => {
+        console.log(["retrieving ... set fundDate/recents"])
         this.setState({ recents });
       }
     );
+    let fundName = this.state.recents[this.state.fundCode].name
+    this.setState({ fundName });
   }
 
-  setFundDataRange(event) {
-    console.log(event.target.value)
-    this.setState({ fundDataRange: event.target.value });
+  setSelectedRecent(fundCode, fundDataLength, fundStatisticalPeriod, todayMockPercentage, fundName) {
+    this.setState({ fundCode, fundDataLength, fundStatisticalPeriod, todayMockPercentage, fundName }, this.retrieveFundDetail);
+  }
+
+  showRecentDeletionConfirmationDialog(fundCode) {
+    let bodyText = fundCode + "-" + this.state.recents[fundCode].name
+    this.setState({ showRecentDeletionConfirmationDialog: true, recentDeletionConfirmationDialogContext: { fundCode, bodyText } })
+  }
+
+  closeRecentDeletionConfirmationDialog() {
+    this.setState({ showRecentDeletionConfirmationDialog: false })
+  }
+
+  async deleteRecent(context) {
+    await FundDataServiceBroker.deleteRecent(
+      this.state.token,
+      context.fundCode,
+      this.refreshRecents
+    );
+    await this.refreshRecents()
+    this.closeRecentDeletionConfirmationDialog()
+  }
+
+  setTodayMockPercentage(event) {
+    this.setState({ todayMockPercentage: event.target.value });
+  }
+
+  setFundDataLength(event) {
+    this.setState({ fundDataLength: event.target.value });
   }
 
   setFundStatisticalPeriod(event) {
-    console.log(event.target.value)
     this.setState({ fundStatisticalPeriod: event.target.value });
   }
 
   setFundCode(event) {
-    console.log(event.target.value)
     this.setState({ fundCode: event.target.value });
   }
 
@@ -104,34 +124,45 @@ class App extends Component {
         <Row>
           <Col>
             <Navbar bg="light" expand={true}>
-              <Navbar.Brand href="#home">Your Fund Assistor</Navbar.Brand>
+              <Navbar.Brand>Fund Assistor</Navbar.Brand>
               <Navbar.Toggle aria-controls="basic-navbar-nav" />
               <Navbar.Collapse id="basic-navbar-nav">
                 <Nav className="mr-auto">
                   <Nav.Link href="#home" onSelect={this.showCockpitPanel}>Cockpit</Nav.Link>
                   <Nav.Link href="#link">Settings</Nav.Link>
-                  <Recents recents={this.state.recents} onRencentItemClick={this.saveRecent} onRencentItemDeleteButtonClick={this.deleteRecent} />
+                  <FundRecents recents={this.state.recents} onRencentItemClick={this.setSelectedRecent} onRencentItemDeleteButtonClick={this.showRecentDeletionConfirmationDialog} />
                 </Nav>
                 <Form inline>
                   <InputGroup>
                     <InputGroup.Prepend>
+                      <InputGroup.Text className="mr-sm-2">{this.state.fundName}</InputGroup.Text>
+                    </InputGroup.Prepend>
+                  </InputGroup>
+                  <InputGroup>
+                    <InputGroup.Prepend>
+                      <InputGroup.Text>Today Mock %</InputGroup.Text>
+                      <InputGroup.Text>&#8263;</InputGroup.Text>
+                    </InputGroup.Prepend>
+                    <FormControl ype="text" placeholder="Today Mock %" className="mr-sm-2" value={this.state.todayMockPercentage || ""} onChange={this.setTodayMockPercentage} />
+                  </InputGroup>
+                  <InputGroup>
+                    <InputGroup.Prepend>
                       <InputGroup.Text>Statistical Period</InputGroup.Text>
                     </InputGroup.Prepend>
-                    <FormControl type="text" placeholder="Statistical Period" className="mr-sm-2" value={this.state.fundStatisticalPeriod} onChange={this.setFundStatisticalPeriod} style={{width: 66}} />
+                    <FormControl type="text" placeholder="Statistical Period" className="mr-sm-2" value={this.state.fundStatisticalPeriod} onChange={this.setFundStatisticalPeriod} style={{ width: 66 }} />
                   </InputGroup>
                   <InputGroup>
                     <InputGroup.Prepend>
                       <InputGroup.Text>Data Range</InputGroup.Text>
                     </InputGroup.Prepend>
-                    <FormControl type="text" placeholder="Data Range" className="mr-sm-2" value={this.state.fundDataRange} onChange={this.setFundDataRange} style={{width: 66}} />
+                    <FormControl type="text" placeholder="Data Range" className="mr-sm-2" value={this.state.fundDataLength} onChange={this.setFundDataLength} style={{ width: 66 }} />
                   </InputGroup>
                   <InputGroup>
                     <InputGroup.Prepend>
                       <InputGroup.Text>Fund Code</InputGroup.Text>
                     </InputGroup.Prepend>
-                    <FormControl type="text" placeholder="Fund Code" className="mr-sm-2" value={this.state.fundCode} onChange={this.setFundCode} style={{width: 88}} />
+                    <FormControl type="text" placeholder="Fund Code" className="mr-sm-2" value={this.state.fundCode} onChange={this.setFundCode} style={{ width: 88 }} />
                   </InputGroup>
-
                   <Button variant="primary" onClick={this.retrieveFundDetail}>Search</Button>
                 </Form>
               </Navbar.Collapse>
@@ -150,43 +181,15 @@ class App extends Component {
             <FundCharts fundData={this.state.fundData} />
           </Col>
         </Row>
+        <ConfirmationDialog context={this.state.recentDeletionConfirmationDialogContext} show={this.state.showRecentDeletionConfirmationDialog}
+          onCancelButtonClick={this.closeRecentDeletionConfirmationDialog}
+          onOkButtonClick={this.deleteRecent}
+        />
       </Container>
     );
   }
 }
 
-
-class Recents extends Component {
-  constructor(props) {
-    super(props);
-    this.applySelectedRecent = this.applySelectedRecent.bind(this);
-    this.handleDeletion = this.handleDeletion.bind(this);
-  }
-
-  applySelectedRecent(fundCode, specificRecent) {
-    console.log(['applySelectedRecent', fundCode, specificRecent])
-    this.props.onRencentItemClick(fundCode, specificRecent.fundDataRange, specificRecent.fundStatisticalPeriod)
-  }
-
-  handleDeletion(fundCode) {
-    console.log(['handleDeletion', fundCode])
-    this.props.onRencentItemDeleteButtonClick(fundCode)
-  }
-
-  render() {
-    console.log(['recents', this.props.recents])
-    const recentItemList = Object.keys(this.props.recents).map((fundCode) =>
-      <NavDropdown.Item onClick={(e) => this.applySelectedRecent(fundCode, this.props.recents[fundCode])} href="" key={fundCode}>
-        <Button variant="outline-danger" onClick={(e) => { e.preventDefault(); this.handleDeletion(fundCode); }}>&#10007;</Button>
-        {' '}
-        {fundCode} - {this.props.recents[fundCode].name}
-      </NavDropdown.Item>
-    );
-    return (
-      <NavDropdown title="Recent" id="basic-nav-dropdown">{recentItemList}</NavDropdown>
-    )
-  }
-}
 export default App;
 
 // https://react-bootstrap.github.io/

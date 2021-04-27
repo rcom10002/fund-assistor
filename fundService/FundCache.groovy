@@ -19,7 +19,6 @@ class FundCache {
         } else {
             result = new groovy.json.JsonSlurper().parseText(result.getText())
         }
-        println(['%%%%%%%%%%%', result.dump()])
         result.datas.each {
             cachedNameList[it[0]] = it[1]
         }
